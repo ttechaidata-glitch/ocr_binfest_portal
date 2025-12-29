@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - LPN Scanner</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@400;600;700&display=swap');
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      color: #e4e4e7;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    
+    .subtitle {
+      color: #94a3b8;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+    
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .qr-container {
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .qr-code {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      display: inline-block;
+      margin-bottom: 16px;
+    }
+    
+    .qr-code img {
+      display: block;
+      width: 250px;
+      height: 250px;
+    }
+    
+    .qr-placeholder {
+      width: 250px;
+      height: 250px;
+      background: rgba(255,255,255,0.1);
+      border: 2px dashed rgba(255,255,255,0.3);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+    
+    .qr-url {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      word-break: break-all;
+      padding: 10px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      margin-top: 12px;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    label {
+      display: block;
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    
+    select, input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 1rem;
+      font-family: inherit;
+    }
+    
+    select:focus, input:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 14px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: #fff;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    
+    .stat {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #3b82f6;
+    }
+    
+    .stat-label {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    
+    .status-active {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+    
+    .status-inactive {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+    
+    .login-form {
+      max-width: 400px;
+      margin: 100px auto;
+    }
+    
+    .login-form h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .error-msg {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    
+    .print-btn {
+      margin-top: 12px;
+    }
+    
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .card, .btn, .form-group, .stats, .subtitle, h1 {
+        display: none !important;
+      }
+      .qr-container {
+        display: block !important;
+      }
+      .qr-code {
+        box-shadow: none;
+      }
+      .qr-code img {
+        width: 400px;
+        height: 400px;
+      }
+      .qr-url {
+        display: block !important;
+        color: #000;
+        background: #f0f0f0;
+        font-size: 1rem;
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Login Form -->
+  <div id="loginView" class="login-form">
+    <h1>🔐 Admin Login</h1>
+    <div class="card">
+      <div id="loginError" class="error-msg"></div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="passwordInput" placeholder="Enter admin password">
+      </div>
+      <button class="btn btn-primary" onclick="login()">Login</button>
+    </div>
+  </div>
+
+  <!-- Admin Panel (hidden until logged in) -->
+  <div id="adminView" class="container" style="display: none;">
+    <h1>📋 LPN Scanner Admin</h1>
+    <p class="subtitle">Generate QR codes for time-limited scanner access</p>
+
+    <!-- Current QR Code -->
+    <div class="card">
+      <div class="card-title">
+        📱 Current QR Code
+        <span id="qrStatus" class="status-badge status-inactive">No QR</span>
+      </div>
+      <div class="qr-container">
+        <div id="qrDisplay">
+          <div class="qr-placeholder">No QR code generated</div>
+        </div>
+        <div id="qrUrlDisplay" class="qr-url" style="display: none;"></div>
+      </div>
+      <button class="btn btn-secondary print-btn" onclick="window.print()" id="printBtn" style="display: none;">
+        🖨️ Print QR Code
+      </button>
+    </div>
+
+    <!-- Generate New QR -->
+    <div class="card">
+      <div class="card-title">⚡ Generate New QR Code</div>
+      <div class="form-group">
+        <label>Session Duration</label>
+        <select id="duration">
+          <option value="5">5 minutes</option>
+          <option value="10" selected>10 minutes</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="60">1 hour</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="generateQR()" id="generateBtn">
+        🔲 Generate New QR Code
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="card">
+      <div class="card-title">📊 Statistics</div>
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-value" id="activeSessions">0</div>
+          <div class="stat-label">Active Sessions</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="sessionDuration">-</div>
+          <div class="stat-label">Session Length</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="poolPages">0</div>
+          <div class="stat-label">Pool Pages</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="activeRequests">0</div>
+          <div class="stat-label">Active Lookups</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="queueLength">0</div>
+          <div class="stat-label">Queue Length</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="cacheSize">0</div>
+          <div class="stat-label">Cached Results</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isLoggedIn = false;
+    let adminToken = localStorage.getItem('adminToken');
+
+    // Check if already logged in
+    if (adminToken) {
+      checkAuth();
+    }
+
+    async function login() {
+      const password = document.getElementById('passwordInput').value;
+      const errorEl = document.getElementById('loginError');
+      
+      try {
+        const res = await fetch('/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          adminToken = data.token;
+          localStorage.setItem('adminToken', adminToken);
+          showAdminPanel();
+          loadStats();
+        } else {
+          errorEl.textContent = data.error || 'Invalid password';
+          errorEl.style.display = 'block';
+        }
+      } catch (e) {
+        errorEl.textContent = 'Connection error';
+        errorEl.style.display = 'block';
+      }
+    }
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/admin/check', {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        if (res.ok) {
+          showAdminPanel();
+          loadStats();
+        } else {
+          localStorage.removeItem('adminToken');
+          adminToken = null;
+        }
+      } catch (e) {
+        localStorage.removeItem('adminToken');
+        adminToken = null;
+      }
+    }
+
+    function showAdminPanel() {
+      document.getElementById('loginView').style.display = 'none';
+      document.getElementById('adminView').style.display = 'block';
+      isLoggedIn = true;
+    }
+
+    async function generateQR() {
+      const duration = document.getElementById('duration').value;
+      const btn = document.getElementById('generateBtn');
+      
+      btn.disabled = true;
+      btn.textContent = '⏳ Generating...';
+      
+      try {
+        const res = await fetch('/admin/generate-qr', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: JSON.stringify({ durationMinutes: parseInt(duration) })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          displayQR(data.qr);
+          loadStats();
+        } else {
+          alert('Failed to generate QR: ' + (data.error || 'Unknown error'));
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔲 Generate New QR Code';
+      }
+    }
+
+    function displayQR(qr) {
+      const display = document.getElementById('qrDisplay');
+      const urlDisplay = document.getElementById('qrUrlDisplay');
+      const status = document.getElementById('qrStatus');
+      const printBtn = document.getElementById('printBtn');
+      
+      display.innerHTML = `<div class="qr-code"><img src="${qr.qrDataUrl}" alt="QR Code"></div>`;
+      urlDisplay.textContent = qr.url;
+      urlDisplay.style.display = 'block';
+      printBtn.style.display = 'block';
+      
+      status.textContent = `${qr.durationMinutes}min sessions`;
+      status.className = 'status-badge status-active';
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/admin/stats', {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        
+        // Session stats
+        document.getElementById('activeSessions').textContent = data.activeSessions || 0;
+        document.getElementById('sessionDuration').textContent = 
+          data.qrDurationMinutes ? `${data.qrDurationMinutes}min` : '-';
+        
+        // Lookup stats
+        if (data.lookup) {
+          document.getElementById('poolPages').textContent = data.lookup.poolSize || 0;
+          document.getElementById('activeRequests').textContent = data.lookup.activeRequests || 0;
+          document.getElementById('queueLength').textContent = data.lookup.queueLength || 0;
+          document.getElementById('cacheSize').textContent = data.lookup.cacheSize || 0;
+        }
+        
+        // If there's a current QR, load it
+        if (data.hasQR) {
+          loadCurrentQR();
+        }
+      } catch (e) {
+        console.error('Failed to load stats:', e);
+      }
+    }
+
+    async function loadCurrentQR() {
+      try {
+        const res = await fetch('/admin/current-qr', {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        const data = await res.json();
+        
+        if (data.qr) {
+          displayQR(data.qr);
+        }
+      } catch (e) {
+        console.error('Failed to load QR:', e);
+      }
+    }
+
+    // Enter key on password field
+    document.getElementById('passwordInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') login();
+    });
+
+    // Refresh stats every 5 seconds for real-time monitoring
+    setInterval(() => {
+      if (isLoggedIn) loadStats();
+    }, 5000);
+  </script>
+</body>
+</html>
+

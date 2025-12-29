@@ -1,0 +1,13 @@
+.env
+node_modules/
+*.log
+.DS_Store
+terminals/
+*.txt
+.vscode/
+.idea/
+dist/
+build/
+coverage/
+.cache/
+

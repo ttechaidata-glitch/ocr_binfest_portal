@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LPN Scanner</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+    
+    /* Timer bar at top */
+    .timer-bar {
+      background: #111;
+      padding: 10px 15px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .timer-label {
+      color: #666;
+      font-size: 0.85rem;
+    }
+    .timer-value {
+      font-family: 'Courier New', monospace;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #0fa;
+    }
+    .timer-value.warning { color: #f90; }
+    .timer-value.danger { color: #f44; }
+    .timer-progress {
+      width: 100%;
+      height: 4px;
+      background: #222;
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .timer-progress-fill {
+      height: 100%;
+      background: #0fa;
+      transition: width 1s linear, background 0.3s;
+    }
+    .timer-progress-fill.warning { background: #f90; }
+    .timer-progress-fill.danger { background: #f44; }
+    
+    /* Expired overlay */
+    .expired-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      flex-direction: column;
+      text-align: center;
+      padding: 20px;
+    }
+    .expired-overlay.show { display: flex; }
+    .expired-icon { font-size: 4rem; margin-bottom: 20px; }
+    .expired-title { font-size: 1.5rem; color: #f44; margin-bottom: 10px; }
+    .expired-text { color: #888; font-size: 1rem; line-height: 1.6; }
+    
+    h1 {
+      text-align: center;
+      font-size: 1.2rem;
+      color: #0fa;
+      padding: 8px 0;
+    }
+    .camera-box {
+      background: #111;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid #0fa;
+      margin-bottom: 10px;
+    }
+    #video {
+      width: 100%;
+      display: block;
+      background: #000;
+    }
+    #canvas { display: none; }
+    
+    .controls {
+      padding: 12px;
+      background: #151515;
+    }
+    #scanBtn {
+      width: 100%;
+      padding: 16px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, #0fa, #0c8);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #scanBtn:active { transform: scale(0.98); }
+    #scanBtn:disabled { background: #333; color: #666; }
+    
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .btn-row button {
+      flex: 1;
+      padding: 10px;
+      background: #222;
+      color: #aaa;
+      border: 1px solid #333;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    
+    .manual-box {
+      display: none;
+      padding: 12px;
+      background: #151515;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .manual-box.show { display: block; }
+    .manual-box input {
+      width: 100%;
+      padding: 12px;
+      font-size: 1.1rem;
+      background: #222;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    .manual-box button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 12px;
+      background: #0fa;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    
+    #status {
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      display: none;
+      text-align: center;
+    }
+    #status.show { display: block; }
+    #status.loading { background: #1a2a3a; color: #0fa; }
+    #status.error { background: #3a1a1a; color: #f55; }
+    #status.success { background: #1a3a2a; color: #0fa; }
+    
+    .result-box {
+      display: none;
+      background: #151515;
+      border-radius: 10px;
+      padding: 15px;
+      border: 1px solid #222;
+    }
+    .result-box.show { display: block; }
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #222;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+    }
+    .result-header h2 {
+      color: #0fa;
+      font-size: 1rem;
+      font-family: monospace;
+    }
+    .result-header button {
+      background: none;
+      border: 1px solid #333;
+      color: #666;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .row:last-child { border-bottom: none; }
+    .label { color: #666; }
+    .value { color: #fff; font-family: monospace; }
+    
+    #debug {
+      background: #111;
+      padding: 8px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 0.7rem;
+      color: #555;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <!-- Expired Overlay -->
+  <div class="expired-overlay" id="expiredOverlay">
+    <div class="expired-icon">⏰</div>
+    <div class="expired-title">Session Expired</div>
+    <div class="expired-text">
+      Your session has ended.<br><br>
+      Please scan the QR code again<br>
+      to start a new session.
+    </div>
+  </div>
+
+  <div class="container">
+    <!-- Timer Bar -->
+    <div class="timer-bar" id="timerBar">
+      <div>
+        <div class="timer-label">⏱️ Time Remaining</div>
+        <div class="timer-value" id="timerValue">--:--</div>
+      </div>
+    </div>
+    <div class="timer-progress">
+      <div class="timer-progress-fill" id="timerProgress" style="width: 100%"></div>
+    </div>
+    
+    <h1>📦 LPN Scanner</h1>
+    
+    <div class="camera-box">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+      <div class="controls">
+        <button id="scanBtn">📷 SCAN</button>
+        <div class="btn-row">
+          <button id="flipBtn">🔄 Flip</button>
+          <button id="manualBtn">⌨️ Type</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="manual-box" id="manualBox">
+      <input type="text" id="codeInput" placeholder="LPNAC786258612">
+      <button id="lookupBtn">🔍 Lookup</button>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div class="result-box" id="resultBox">
+      <div class="result-header">
+        <h2 id="resultCode">-</h2>
+        <button id="closeBtn">×</button>
+      </div>
+      <div id="resultContent"></div>
+    </div>
+    
+    <div id="debug">Ready</div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const scanBtn = document.getElementById('scanBtn');
+    const debugEl = document.getElementById('debug');
+    const statusEl = document.getElementById('status');
+    const timerValueEl = document.getElementById('timerValue');
+    const timerProgressEl = document.getElementById('timerProgress');
+    const expiredOverlay = document.getElementById('expiredOverlay');
+
+    let stream = null;
+    let useFront = false;
+    let sessionExpired = false;
+    let totalDuration = 0;
+    let timerInterval = null;
+
+    const log = (msg) => {
+      console.log(msg);
+      debugEl.innerHTML = msg + '<br>' + debugEl.innerHTML.substring(0, 300);
+    };
+
+    const showStatus = (msg, type = 'loading') => {
+      statusEl.textContent = msg;
+      statusEl.className = 'show ' + type;
+    };
+    const hideStatus = () => statusEl.className = '';
+
+    // ============================================
+    // Session Timer
+    // ============================================
+    
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function updateTimerDisplay(remainingSeconds) {
+      timerValueEl.textContent = formatTime(remainingSeconds);
+      
+      // Calculate progress percentage
+      const percent = totalDuration > 0 ? (remainingSeconds / totalDuration) * 100 : 0;
+      timerProgressEl.style.width = percent + '%';
+      
+      // Color changes based on time remaining
+      timerValueEl.classList.remove('warning', 'danger');
+      timerProgressEl.classList.remove('warning', 'danger');
+      
+      if (remainingSeconds <= 60) {
+        timerValueEl.classList.add('danger');
+        timerProgressEl.classList.add('danger');
+      } else if (remainingSeconds <= 120) {
+        timerValueEl.classList.add('warning');
+        timerProgressEl.classList.add('warning');
+      }
+    }
+
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/session-status');
+        const data = await res.json();
+        
+        if (!data.valid) {
+          sessionExpired = true;
+          showExpired();
+          return false;
+        }
+        
+        // Store total duration on first check
+        if (totalDuration === 0) {
+          totalDuration = data.remainingSeconds;
+        }
+        
+        updateTimerDisplay(data.remainingSeconds);
+        return true;
+      } catch (e) {
+        log('Session check error: ' + e.message);
+        return false;
+      }
+    }
+
+    function showExpired() {
+      sessionExpired = true;
+      expiredOverlay.classList.add('show');
+      scanBtn.disabled = true;
+      if (timerInterval) clearInterval(timerInterval);
+    }
+
+    function startSessionTimer() {
+      // Check immediately
+      checkSession();
+      
+      // Then check every second
+      timerInterval = setInterval(async () => {
+        const valid = await checkSession();
+        if (!valid) {
+          showExpired();
+        }
+      }, 1000);
+    }
+
+    // ============================================
+    // Camera
+    // ============================================
+    
+    async function startCamera() {
+      log('Starting camera...');
+      try {
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { 
+            facingMode: useFront ? 'user' : 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
+        video.srcObject = stream;
+        video.onloadedmetadata = () => log('Camera: ' + video.videoWidth + 'x' + video.videoHeight);
+      } catch (e) {
+        log('Camera error: ' + e.message);
+        showStatus('Camera error', 'error');
+      }
+    }
+
+    // SCAN - capture and send to Gemini
+    scanBtn.onclick = async function() {
+      if (sessionExpired) {
+        showExpired();
+        return;
+      }
+      
+      if (!video.videoWidth) {
+        showStatus('Camera not ready', 'error');
+        return;
+      }
+
+      scanBtn.disabled = true;
+      scanBtn.textContent = '⏳ Reading...';
+      showStatus('Sending to Gemini AI...', 'loading');
+
+      try {
+        // Capture frame
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        log('Captured: ' + canvas.width + 'x' + canvas.height);
+
+        // Convert to base64 JPEG (smaller file size)
+        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        log('Image size: ' + Math.round(imageData.length / 1024) + 'KB');
+
+        // Send to server (which calls Gemini)
+        const response = await fetch('/api/ocr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: imageData })
+        });
+
+        const data = await response.json();
+        log('Response: ' + JSON.stringify(data));
+
+        // Check for session expired
+        if (data.expired) {
+          showExpired();
+          return;
+        }
+
+        if (data.success && data.code) {
+          showStatus('Found: ' + data.code, 'success');
+          if (navigator.vibrate) navigator.vibrate(100);
+          await doLookup(data.code);
+        } else {
+          showStatus('No LPN found. Try again.', 'error');
+          setTimeout(hideStatus, 3000);
+        }
+
+      } catch (e) {
+        log('Error: ' + e.message);
+        showStatus('Error: ' + e.message, 'error');
+      } finally {
+        if (!sessionExpired) {
+          scanBtn.disabled = false;
+          scanBtn.textContent = '📷 SCAN';
+        }
+      }
+    };
+
+    // Lookup code
+    async function doLookup(code) {
+      if (sessionExpired) {
+        showExpired();
+        return;
+      }
+      
+      log('Looking up: ' + code);
+      showStatus('Looking up...', 'loading');
+
+      try {
+        const res = await fetch('/api/lookup/' + encodeURIComponent(code));
+        const data = await res.json();
+
+        // Check for session expired
+        if (data.expired) {
+          showExpired();
+          return;
+        }
+
+        if (data.success) {
+          showResult(code, data);
+          hideStatus();
+        } else {
+          showStatus(data.error || 'Not found', 'error');
+          setTimeout(hideStatus, 3000);
+        }
+      } catch (e) {
+        log('Lookup error: ' + e.message);
+        showStatus('Network error', 'error');
+      }
+    }
+
+    function showResult(code, data) {
+      document.getElementById('resultCode').textContent = code;
+      let html = '';
+      
+      // Show image if available (check both data.image and data.data.Image)
+      const imgSrc = data.image || (data.data && data.data.Image);
+      if (imgSrc) {
+        html += `<div style="text-align:center;margin-bottom:15px"><img src="${imgSrc}" alt="Product" style="max-width:150px;max-height:150px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2)"></div>`;
+      }
+      
+      if (data.data) {
+        ['Product', 'LPN', 'UPC', 'ASIN', 'Brand', 'Category', 'Price'].forEach(key => {
+          if (data.data[key]) {
+            html += `<div class="row"><span class="label">${key}</span><span class="value">${data.data[key]}</span></div>`;
+          }
+        });
+      }
+      document.getElementById('resultContent').innerHTML = html || '<p style="color:#666">No details</p>';
+      document.getElementById('resultBox').classList.add('show');
+    }
+
+    // Event handlers
+    document.getElementById('flipBtn').onclick = () => { useFront = !useFront; startCamera(); };
+    document.getElementById('manualBtn').onclick = () => document.getElementById('manualBox').classList.toggle('show');
+    document.getElementById('lookupBtn').onclick = () => {
+      const code = document.getElementById('codeInput').value.trim().toUpperCase();
+      if (code) doLookup(code);
+    };
+    document.getElementById('codeInput').onkeypress = (e) => {
+      if (e.key === 'Enter') {
+        const code = e.target.value.trim().toUpperCase();
+        if (code) doLookup(code);
+      }
+    };
+    document.getElementById('closeBtn').onclick = () => document.getElementById('resultBox').classList.remove('show');
+
+    // Init
+    log('Initializing...');
+    startCamera();
+    startSessionTimer();
+  </script>
+</body>
+</html>
